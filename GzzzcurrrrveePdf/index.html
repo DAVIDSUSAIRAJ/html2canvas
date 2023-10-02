@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+
+    <script>
+
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+        let GzCurveExportPDF = async (e) => {
+  const vesdetailStyles = {
+      fontStyle: 'bold',
+      fontSize: 11,
+      textColor: '#000',
+      cellPadding: 1,
+      cellWidth: 'wrap',
+      halign: 'left'
+  };
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = today.getMonth() + 1;
+  const dd = today.getDate();
+  const GzCurveChartContainer = document.getElementById('GzCurveGraph');
+
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text('GZ Curve', 80, 12);
+  doc.autoTable({
+      styles: {
+          lineWidth: 0
+      },
+      theme: 'grid',
+      columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 55 }, 2: { cellWidth: 60 }, 3: { cellWidth: 20 } },
+      head: [],
+      body: [
+          ['Vessel', `: ${vesselCode}`, '', 'Date', `: ${dd}/${mm}/${yyyy}`],
+          ['VesselName', `: ${vesselname}`, '', 'Port', `: ${portCode}`],
+          ['Voyage', `: ${voyage}`, '', 'Terminal', `: ${terminal}`],
+          ['Service', `: ${service}`, '', 'Bound', `: ${bound}`]
+      ],
+      startY: 20,
+      bodyStyles: vesdetailStyles
+  });
+
+  doc.line(10, 55, 280, 55);
+
+  if ('showSaveFilePicker' in window) {
+      const options = {
+          suggestedName: 'GZ Curve',
+          types: [
+              {
+                  description: 'PDF file',
+                  accept: {
+                      'application/pdf': ['.pdf']
+                  }
+              }
+          ]
+      };
+
+      const handle = await window.showSaveFilePicker(options);
+      const writable = await handle.createWritable();
+
+      // Delay chart capture until the user initiates the PDF export
+      const canvas = await html2canvas(GzCurveChartContainer);
+      const imageData = canvas.toDataURL('image/png');
+      doc.addImage(imageData, 'PNG', 10, 60, 220, 70);
+
+      let GzCurveRows = [
+        ["Area 0 to 30 Degrees",`${GzCurveDetailsData.res_30??""}`,`[M-Rad]`,`${GzCurveDetailsData.req_30??""}`,`[M-Rad]`],
+        ["Area 0 to 40 Degrees",`${GzCurveDetailsData.res_40??""}`,`[M-Rad]`,`${GzCurveDetailsData.req_40??""}`,`[M-Rad]`],
+        ["Area Between 30 to 40",`${GzCurveDetailsData.res_30_to_40??""}`,`[M-Rad]`,`${GzCurveDetailsData.req_30_to_40??""}`,`[M-Rad]`],
+        ["GZ at angle >= 30Degrees",`${GzCurveDetailsData.degreesRes_30??""}`,`[m]`,`${GzCurveDetailsData.degreesReq_30??""}`,`[m]`],
+        ["Minimum GM",`${GzCurveDetailsData.GmResMin??""}`,`[GM]`,`${GzCurveDetailsData.GmReqMin??""}`,`[GM]`],
+        ["Angle At Maximum GZ",`${GzCurveDetailsData.MaxGzAngleRes??""}`,`[DEG]`,`${GzCurveDetailsData.MaxGzAngleMinreq??""}`,`[DEG]`],
+        ["Initial Metacentric Height",`${GzCurveDetailsData.Gmtres??""}`,`[m]`,`${GzCurveDetailsData.Gmtreq??""}`,`[m]`],
+        ["Note : Flooding Angle is >=40 degrees so 40 is adopted",`${GzCurveDetailsData.ThetaFlood??""}`,``],
+    
+    ]
+
+      doc.autoTable({
+          head: [["General Intact At Stability Area","Actual"," ","IMO Req"," "]],
+          body: GzCurveRows,
+          startY: 150,
+          didDrawPage: data => {
+            //from second page the logo will be add
+              //Header Hapag LLoyd Image
+              const image = new Image();
+              image.src = `${process.env.PUBLIC_URL}/assets/images/logos/clientLogo.jpeg`;
+              doc.addImage(image, 8, 6, 40, 8);
+      
+            // Footer Part
+            //Footer Image (Solverminds Logo)
+            var pageSize = doc.internal.pageSize;
+            var pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+            const image2 = new Image();
+            image2.src = `${process.env.PUBLIC_URL}/assets/images/logos/solvermindsLogo.jpeg`;
+            doc.addImage(image2, 8, pageHeight - 12, 40, 8);
+            doc.setFontSize(8);
+            //Page numbers
+            doc.text(`${data.pageNumber}`, doc.internal.pageSize.getWidth() / 2, pageHeight - 5, {
+              align: 'center',
+              fontStyle: 'bold'
+            });
+            //Date and Time
+            doc.text(`Date: ${dd}/${mm}/${yyyy}`, doc.internal.pageSize.getWidth() - 38, 289);
+            doc.text(`Time: ${new Date().toLocaleTimeString()}`, doc.internal.pageSize.getWidth() - 38, 293);
+          }
+          
+      });
+
+      const PdfArrBuffer = doc.output('arraybuffer');
+
+      await writable.write(new Blob([PdfArrBuffer], { type: 'application/pdf' }));
+      await writable.close();
+  } else {
+      doc.save('GZ Curve.pdf');
+  }
+};
+    </script>
+</body>
+</html>
